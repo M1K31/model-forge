@@ -11,6 +11,7 @@ from model_forge import (
     ForgePipeline,
     generate_modelfile_content,
     get_recommendation_for_tier,
+    select_tier,
     sign_manifest,
     verify_manifest,
     ModelProvenanceManifest,
@@ -25,6 +26,11 @@ def test_tier_recommendations():
     rec2 = get_recommendation_for_tier(2)
     assert rec2.tier == 2
     assert "Llama-3.1-8B" in rec2.base_model
+
+    assert select_tier(4.0, has_gpu=False) == 0
+    assert select_tier(8.0, has_gpu=False) == 1
+    assert select_tier(16.0, has_gpu=True, vram_gb=8.0) == 2
+    assert select_tier(32.0, has_gpu=True, vram_gb=16.0) == 3
 
 
 def test_modelfile_generation_embeds_policy_json_instructions():

@@ -4,7 +4,7 @@ from .benchmarks import BenchmarkResults
 from .manifest import ModelProvenanceManifest, sign_manifest, verify_manifest
 from .modelfile import generate_modelfile_content, write_modelfile
 from .pipeline import ForgePipeline, ForgeResult
-from .tier_selector import TierRecommendation, get_recommendation_for_tier
+from .tier_selector import TierRecommendation, get_recommendation_for_tier, select_tier
 
 __all__ = [
     "BenchmarkResults",
@@ -14,6 +14,7 @@ __all__ = [
     "TierRecommendation",
     "generate_modelfile_content",
     "get_recommendation_for_tier",
+    "select_tier",
     "sign_manifest",
     "verify_manifest",
     "write_modelfile",

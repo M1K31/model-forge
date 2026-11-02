@@ -50,3 +50,15 @@ def get_recommendation_for_tier(tier: int) -> TierRecommendation:
     bounded = max(0, min(3, tier))
     return TIER_RECOMMENDATIONS[bounded]
 
+
+def select_tier(ram_gb: float, has_gpu: bool = False, vram_gb: float = 0.0) -> int:
+    """Classify system hardware into tier 0-3 based on RAM, GPU presence, and VRAM."""
+    if ram_gb >= 32.0 and has_gpu and (vram_gb >= 16.0 or vram_gb == 0.0):
+        # On unified memory (Apple Metal), vram_gb may be reported as 0 or equal to RAM
+        return 3
+    elif ram_gb >= 16.0 and has_gpu:
+        return 2
+    elif ram_gb >= 8.0:
+        return 1
+    return 0
+
