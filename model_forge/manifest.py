@@ -83,3 +83,4 @@ def verify_manifest(
         return True
     except Exception:
         return False
+

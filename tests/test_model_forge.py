@@ -70,3 +70,4 @@ def test_pipeline_dry_run(tmp_path: Path):
 
     modelfile_text = Path(res.modelfile_path).read_text(encoding="utf-8")
     assert "PolicyEngine" in modelfile_text
+

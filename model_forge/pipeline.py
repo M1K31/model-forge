@@ -153,3 +153,4 @@ class ForgePipeline:
             benchmarks=benchmarks,
             success=benchmarks.is_acceptable(),
         )
+

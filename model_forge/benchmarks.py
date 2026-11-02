@@ -36,3 +36,4 @@ def run_synthetic_benchmarks(model_name: str) -> BenchmarkResults:
         cyber_triage_score=0.96,
         survival_score=0.94,
     )
+

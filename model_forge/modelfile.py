@@ -46,3 +46,4 @@ def write_modelfile(
     content = generate_modelfile_content(gguf_filename, role=role)
     p.write_text(content, encoding="utf-8")
     return p
+

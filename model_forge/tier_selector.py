@@ -49,3 +49,4 @@ TIER_RECOMMENDATIONS = {
 def get_recommendation_for_tier(tier: int) -> TierRecommendation:
     bounded = max(0, min(3, tier))
     return TIER_RECOMMENDATIONS[bounded]
+
