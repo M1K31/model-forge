@@ -84,6 +84,9 @@ model-forge build \
   --out ./dist/models/llama-3.1-8b-heretic
 ```
 
+> [!NOTE]
+> **GGUF Conversion Roadmap Status**: In the current v0.1.0 release, automated GGUF conversion directly within `model-forge build` is an active milestone ([FORGE-02](todos_changelog.md)). For production deployments without pre-converted weights, ablated PyTorch weights in `decensored/` should be converted using `llama.cpp`'s `convert_hf_to_gguf.py` and quantized via `quantize` before importing into Ollama.
+
 ### Pipeline Output Artifacts
 
 Upon successful completion, the output directory contains:
@@ -116,7 +119,7 @@ ollama list | grep llama3.1-8b-heretic
 ollama run llama3.1-8b-heretic "Analyze network event: unexpected connection to 192.168.1.50:4444"
 ```
 
-The output will strictly adhere to the ecosystem JSON proposal contract:
+The model is instructed to output structured proposals conforming to the ecosystem contract:
 ```json
 {
   "action": "isolate_host",
@@ -129,15 +132,25 @@ The output will strictly adhere to the ecosystem JSON proposal contract:
 }
 ```
 
+> [!IMPORTANT]
+> **Client-Side Schema Validation**: While the `Modelfile` instructs the model to format responses as JSON proposals, free-form LLM output is not guaranteed to conform to the schema on every invocation. Ecosystem consumers (`appEcosystem`, `ecosystem-ai`, `AegisSIEM`, `AI-for-Survival`) MUST pass raw output through `ecosystem_client.contracts.parse_proposals()`, which validates against `action-proposal.v1.schema.json`. Invalid outputs raise `UnusableModelOutput` and are rejected before reaching `PolicyEngine`.
+
 ---
 
 ## 5. Provenance Verification
 
 Ecosystem consumers verify the authenticity and integrity of forged models before loading them into operational pipelines:
 
+### Key Management & Trust Anchors
+
+> [!WARNING]
+> By default, `ForgePipeline` generates an ephemeral Ed25519 key for dry-runs and automated tests. In production environments, instantiate `ForgePipeline(private_key=operator_key)` using a persistent private key, and distribute the operator's public key out-of-band to consumers. Manifests verified without a pinned public key cannot guarantee authenticity.
+
 ### Python Verification API
 
 ```python
+import base64
+import hashlib
 import json
 from pathlib import Path
 from model_forge import verify_manifest
@@ -145,10 +158,24 @@ from model_forge import verify_manifest
 manifest_path = Path("./dist/models/llama-3.1-8b-heretic/provenance.json")
 manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
 
-# Verify payload structure and signature
-is_valid = verify_manifest(manifest_data)
-if not is_valid:
-    raise ValueError("Untrusted or corrupted model package: signature check failed.")
+# 1. Verify cryptographic Ed25519 signature against pinned operator public key
+TRUSTED_OPERATOR_PUBKEY_B64 = "..."  # Acquired out-of-band from operator key store
+is_valid_sig = verify_manifest(manifest_data, public_key_raw_b64=TRUSTED_OPERATOR_PUBKEY_B64)
+if not is_valid_sig:
+    raise ValueError("Untrusted or corrupted model package: cryptographic signature check failed.")
+
+# 2. Verify SHA-256 digest of binary GGUF weights
+gguf_file = manifest_path.parent / manifest_data["gguf_file"]
+hasher = hashlib.sha256()
+with open(gguf_file, "rb") as f:
+    while chunk := f.read(1024 * 1024):
+        hasher.update(chunk)
+computed_sha256 = hasher.hexdigest()
+
+if computed_sha256 != manifest_data["sha256"]:
+    raise ValueError(
+        f"GGUF binary digest mismatch! Expected {manifest_data['sha256']}, got {computed_sha256}"
+    )
 
 print(f"Verified model {manifest_data['model_id']} (Tier {manifest_data['tier']})")
 print(f"KL Divergence: {manifest_data['eval_scores']['kl_divergence']}")
